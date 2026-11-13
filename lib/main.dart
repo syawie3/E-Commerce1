@@ -1,43 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import 'pages/feeds_sreen.dart';
+import 'core/theme/app_theme.dart';
+import 'core/utils/responsive.dart';
+import 'pages/feeds_screen.dart';
 import 'pages/home_screen.dart';
-import 'pages/mall_sreen.dart';
+import 'pages/login_screen.dart';
+import 'pages/mall_screen.dart';
 import 'pages/profile_screen.dart';
 import 'pages/transactions_screen.dart';
 
-/// Flutter code sample for [NavigationBar].
+void main() {
+  runApp(const NavigationBarApp());
+}
 
-void main() => runApp(const NavigationBarApp());
-
+/// Root Widget Aplikasi E-Commerce
 class NavigationBarApp extends StatelessWidget {
   const NavigationBarApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Modern E-Commerce Store',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // Explicitly enable Material 3 (Optional for modern Flutter versions)
-        useMaterial3: true,
-        // Generate a full M3 ColorScheme from a single seed color
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.light,
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-      ),
-      home: NavigationExample(),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      home: const LoginScreen(),
     );
   }
 }
 
+/// Shell Navigasi Utama dengan Floating Navigation Bar
 class NavigationExample extends StatefulWidget {
   const NavigationExample({super.key});
 
@@ -48,7 +42,7 @@ class NavigationExample extends StatefulWidget {
 class _NavigationExampleState extends State<NavigationExample> {
   int currentPageIndex = 0;
 
-  List<Widget> pages = [
+  final List<Widget> pages = const [
     HomeScreen(),
     FeedsScreen(),
     MallScreen(),
@@ -56,24 +50,26 @@ class _NavigationExampleState extends State<NavigationExample> {
     ProfileScreen(),
   ];
 
-  // kondisi navbar muncul atau tidak
+  // Status visibilitas floating navbar saat di-scroll
   bool _showNavigationBar = true;
 
-  // penentu kemunculan navbar
+  // Deteksi arah scroll untuk menyembunyikan/menampilkan navbar
   void _handleScroll(ScrollNotification notification) {
     if (notification is UserScrollNotification) {
-      // jika scroll kebawah (layar ke atas)
       if (notification.direction == ScrollDirection.reverse) {
-        // sembunyikan navbar
-        setState(() {
-          _showNavigationBar = false;
-        });
+        // Scroll ke bawah -> sembunyikan navbar agar pandangan lebih luas
+        if (_showNavigationBar) {
+          setState(() {
+            _showNavigationBar = false;
+          });
+        }
       } else if (notification.direction == ScrollDirection.forward) {
-        // jika scroll keatas (layar ke bawah)
-        // tampilkan navbar
-        setState(() {
-          _showNavigationBar = true;
-        });
+        // Scroll ke atas -> tampilkan kembali navbar
+        if (!_showNavigationBar) {
+          setState(() {
+            _showNavigationBar = true;
+          });
+        }
       }
     }
   }
@@ -88,24 +84,33 @@ class _NavigationExampleState extends State<NavigationExample> {
         },
         child: Stack(
           children: [
-            pages[currentPageIndex],
+            // Konten Halaman Aktif (IndexedStack agar state tidak reset saat ganti tab)
+            IndexedStack(
+              index: currentPageIndex,
+              children: pages,
+            ),
+
+            // Floating Pill Navigation Bar (Responsif di Web & Mobile)
             Positioned(
               left: 16,
               right: 16,
-              bottom: 12,
-              child: AnimatedSlide(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                // Muncul: Offset(0, 0)
-                // Hilang: geser ke bawah
-                offset: _showNavigationBar ? Offset.zero : const Offset(0, 1.5),
-
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  opacity: _showNavigationBar ? 1.0 : 0.0,
-
-                  child: _navBar(),
+              bottom: 14,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: ResponsiveContentWrapper(
+                  maxWidth: 520,
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    offset:
+                        _showNavigationBar ? Offset.zero : const Offset(0, 1.8),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      opacity: _showNavigationBar ? 1.0 : 0.0,
+                      child: _buildFloatingNavBar(),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -115,51 +120,79 @@ class _NavigationExampleState extends State<NavigationExample> {
     );
   }
 
-  Widget _navBar() {
-    return Material(
-      elevation: 10,
-      borderRadius: BorderRadius.circular(25),
-      clipBehavior: Clip.antiAlias,
-      child: NavigationBar(
-        // ketika menu diklik
-        onDestinationSelected: (int selectedMenu) {
-          setState(() {
-            // ubah urutan menu dan halaman
-            currentPageIndex = selectedMenu;
-          });
-        },
-        indicatorColor: Theme.of(context).colorScheme.primary,
-        // menunjukkan menu mana yang aktif
-        selectedIndex: currentPageIndex,
-        // kumpulan menu
-        destinations: const <Widget>[
-          // menu-menu di bawah
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home, color: Colors.white),
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.video_collection, color: Colors.white),
-            icon: Icon(Icons.video_collection_outlined),
-            label: 'Feeds',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.store, color: Colors.white),
-            icon: Icon(Icons.store_outlined),
-            label: 'Mall',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.list_alt, color: Colors.white),
-            icon: Badge(label: Text('2'), child: Icon(Icons.list_alt_outlined)),
-            label: 'Transactions',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.person, color: Colors.white),
-            icon: Icon(Icons.person_outlined),
-            label: 'Profile',
+  /// Desain Floating Navbar Modern berbentuk Kapsul (Pill)
+  Widget _buildFloatingNavBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark ? AppTheme.borderDark : AppTheme.borderLight,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: NavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          height: 66,
+          selectedIndex: currentPageIndex,
+          indicatorColor: AppTheme.primaryColor.withOpacity(0.15),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          onDestinationSelected: (int index) {
+            setState(() {
+              currentPageIndex = index;
+            });
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primaryColor),
+              label: 'Beranda',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.explore_outlined),
+              selectedIcon:
+                  Icon(Icons.explore_rounded, color: AppTheme.primaryColor),
+              label: 'Feeds',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon:
+                  Icon(Icons.storefront_rounded, color: AppTheme.primaryColor),
+              label: 'Mall',
+            ),
+            NavigationDestination(
+              icon: Badge(
+                label: Text('2'),
+                backgroundColor: AppTheme.primaryColor,
+                child: Icon(Icons.receipt_long_outlined),
+              ),
+              selectedIcon: Badge(
+                label: Text('2'),
+                backgroundColor: AppTheme.primaryColor,
+                child: Icon(Icons.receipt_long_rounded, color: AppTheme.primaryColor),
+              ),
+              label: 'Transaksi',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon:
+                  Icon(Icons.person_rounded, color: AppTheme.primaryColor),
+              label: 'Profil',
+            ),
+          ],
+        ),
       ),
     );
   }

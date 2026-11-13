@@ -1,11 +1,11 @@
 {
-    "name": "mysample",
-    "short_name": "mysample",
+    "name": "Navbar Store - Modern E-Commerce",
+    "short_name": "Navbar Store",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F8FAFC",
+    "theme_color": "#6366F1",
+    "description": "Navbar Store - Belanja Online Terlengkap & Modern",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

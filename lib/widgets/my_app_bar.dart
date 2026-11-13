@@ -1,30 +1,91 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+
+/// App bar kustom modern dengan search field, notifikasi badge, dan cart.
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const MyAppBar({super.key});
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onCartPressed;
+  final VoidCallback? onChatPressed;
+  final int cartCount;
+
+  const MyAppBar({
+    super.key,
+    this.onSearchChanged,
+    this.onCartPressed,
+    this.onChatPressed,
+    this.cartCount = 3,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AppBar(
       automaticallyImplyLeading: false,
-      toolbarHeight: 70,
+      toolbarHeight: 72,
+      backgroundColor: isDark ? AppTheme.surfaceDark : Colors.white,
+      elevation: 0,
+      titleSpacing: 16,
       title: Row(
         children: [
-          // Search Bar
+          // Logo / Brand Icon mini
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.shopping_bag_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Search Input Bar
           Expanded(
             child: SizedBox(
-              height: 45,
+              height: 44,
               child: TextField(
+                onChanged: onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: 'Cari produk...',
-                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Cari headphone, sepatu, buku...',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade400,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: AppTheme.primaryColor,
+                  ),
                   filled: true,
-                  // fillColor: Colors.grey.shade200,
+                  fillColor: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppTheme.primaryColor,
+                      width: 1.5,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -32,16 +93,41 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
 
           const SizedBox(width: 8),
 
-          // Tombol Chat
+          // Chat Icon Button
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.chat_bubble_outline),
+            onPressed: onChatPressed ??
+                () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Membuka Pusat Pesan & Chat Toko...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Pesan',
           ),
 
-          // Tombol Keranjang
+          // Cart Icon Button dengan Badge
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: onCartPressed ??
+                () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Keranjang belanja Anda memiliki $cartCount barang',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+            icon: Badge(
+              label: Text('$cartCount'),
+              isLabelVisible: cartCount > 0,
+              backgroundColor: AppTheme.dangerColor,
+              child: const Icon(Icons.shopping_cart_outlined),
+            ),
+            tooltip: 'Keranjang',
           ),
         ],
       ),
@@ -49,6 +135,5 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  // TODO: implement preferredSize
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(72);
 }
