@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../core/services/app_state.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/currency_formatter.dart';
 import '../core/utils/responsive.dart';
-import '../data/dummy/dummy_transaksi.dart';
 import '../data/models/model_transaksi.dart';
 import '../widgets/safe_image.dart';
 import 'detail_product_screen.dart';
+import 'order_detail_screen.dart';
 
-/// Halaman Riwayat Transaksi & Status Pesanan
+/// Halaman Riwayat Transaksi & Status Pesanan Real-time
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
 
@@ -42,59 +43,67 @@ class _TransactionsScreenState extends State<TransactionsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Daftar Transaksi'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryColor,
-          indicatorWeight: 3,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          tabs: tabs.map((tab) => Tab(text: tab)).toList(),
-        ),
-      ),
-      body: ResponsiveContentWrapper(
-        maxWidth: 900,
-        child: TabBarView(
-          controller: _tabController,
-          children: tabs.map((tabName) {
-            final filteredList = dummyTransactions.where((order) {
-              if (tabName == 'Semua') return true;
-              if (tabName == 'Dikemas') {
-                return order.status == OrderStatus.dikemas;
-              }
-              if (tabName == 'Dikirim') {
-                return order.status == OrderStatus.dikirim;
-              }
-              if (tabName == 'Selesai') {
-                return order.status == OrderStatus.selesai;
-              }
-              if (tabName == 'Dibatalkan') {
-                return order.status == OrderStatus.dibatalkan;
-              }
-              return true;
-            }).toList();
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        final orders = AppState.instance.orders;
 
-            if (filteredList.isEmpty) {
-              return _buildEmptyState(tabName);
-            }
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Daftar Transaksi'),
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelColor: AppTheme.primaryColor,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: AppTheme.primaryColor,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+              tabs: tabs.map((tab) => Tab(text: tab)).toList(),
+            ),
+          ),
+          body: ResponsiveContentWrapper(
+            maxWidth: 900,
+            child: TabBarView(
+              controller: _tabController,
+              children: tabs.map((tabName) {
+                final filteredList = orders.where((order) {
+                  if (tabName == 'Semua') return true;
+                  if (tabName == 'Dikemas') {
+                    return order.status == OrderStatus.dikemas;
+                  }
+                  if (tabName == 'Dikirim') {
+                    return order.status == OrderStatus.dikirim;
+                  }
+                  if (tabName == 'Selesai') {
+                    return order.status == OrderStatus.selesai;
+                  }
+                  if (tabName == 'Dibatalkan') {
+                    return order.status == OrderStatus.dibatalkan;
+                  }
+                  return true;
+                }).toList();
 
-            return ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              itemCount: filteredList.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (context, index) {
-                final order = filteredList[index];
-                return _buildOrderCard(order);
-              },
-            );
-          }).toList(),
-        ),
-      ),
+                if (filteredList.isEmpty) {
+                  return _buildEmptyState(tabName);
+                }
+
+                return ListView.separated(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  itemCount: filteredList.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  itemBuilder: (context, index) {
+                    final order = filteredList[index];
+                    return _buildOrderCard(order);
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -141,185 +150,210 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Card: Toko & Status Badge
-            Row(
-              children: [
-                const Icon(
-                  Icons.storefront_rounded,
-                  size: 18,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    order.storeName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusBgColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    order.status.label,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 6),
-
-            // Nomor Invoice & Tanggal
-            Text(
-              '${order.invoiceNumber} • ${_formatDate(order.date)}',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade500,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrderDetailScreen(order: order),
               ),
-            ),
-
-            const Divider(height: 24),
-
-            // Konten Produk
-            Row(
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SafeImage(
-                    imageUrl: firstItem.product.image,
-                    width: 70,
-                    height: 70,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        firstItem.product.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      if (firstItem.variant != null)
-                        Text(
-                          'Variasi: ${firstItem.variant}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${firstItem.quantity} barang x ${formatRupiah(firstItem.product.price)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const Divider(height: 24),
-
-            // Footer: Total Belanja & Action Button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Total Belanja',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    Text(
-                      formatRupiah(order.totalAmount),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
+                // Header Card: Toko & Status Badge
                 Row(
                   children: [
-                    OutlinedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Menampilkan detail invoice ${order.invoiceNumber}',
-                            ),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        minimumSize: const Size(0, 36),
-                      ),
-                      child: const Text('Detail', style: TextStyle(fontSize: 12)),
+                    const Icon(
+                      Icons.storefront_rounded,
+                      size: 18,
+                      color: AppTheme.primaryColor,
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductScreen(
-                              product: firstItem.product,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        order.storeName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusBgColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        order.status.label,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 6),
+
+                // Nomor Invoice & Tanggal
+                Text(
+                  '${order.invoiceNumber} • ${_formatDate(order.date)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+
+                const Divider(height: 24),
+
+                // Konten Produk
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SafeImage(
+                        imageUrl: firstItem.product.image,
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            firstItem.product.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          if (firstItem.variant != null)
+                            Text(
+                              'Variasi: ${firstItem.variant}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${firstItem.quantity} barang x ${formatRupiah(firstItem.product.price)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
                             ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        minimumSize: const Size(0, 36),
+                          if (order.items.length > 1)
+                            Text(
+                              '+${order.items.length - 1} produk lainnya',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
                       ),
-                      child: const Text('Beli Lagi', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+
+                const Divider(height: 24),
+
+                // Footer: Total Belanja & Action Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Total Belanja',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                        Text(
+                          formatRupiah(order.totalAmount),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    OrderDetailScreen(order: order),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text('Lacak', style: TextStyle(fontSize: 12)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailProductScreen(
+                                  product: firstItem.product,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text('Beli Lagi',
+                              style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

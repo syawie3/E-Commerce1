@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../core/services/app_state.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/currency_formatter.dart';
 import '../data/models/model_produk.dart';
 import '../pages/detail_product_screen.dart';
+import 'animated_pulse_heart.dart';
 import 'safe_image.dart';
 
-/// Card Produk modern dengan efek elevasi, rating, diskon, dan responsif.
-class ProductCard extends StatefulWidget {
+/// Card Produk modern dengan efek animasi Hero, Wishlist Bouncy, Rating, dan responsif.
+class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onFavoriteToggle;
 
@@ -18,21 +20,7 @@ class ProductCard extends StatefulWidget {
   });
 
   @override
-  State<ProductCard> createState() => _ProductCardState();
-}
-
-class _ProductCardState extends State<ProductCard> {
-  late bool isFavorite;
-
-  @override
-  void initState() {
-    super.initState();
-    isFavorite = widget.product.isFavorite;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final product = widget.product;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -116,46 +104,14 @@ class _ProductCardState extends State<ProductCard> {
                         ),
                       ),
 
-                    // Tombol Wishlist / Favorite
+                    // Tombol Wishlist dengan Animasi Denyut (Pulse)
                     Positioned(
                       top: 6,
                       right: 6,
-                      child: Material(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: const CircleBorder(),
-                        elevation: 1,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () {
-                            setState(() {
-                              isFavorite = !isFavorite;
-                            });
-                            widget.onFavoriteToggle?.call();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isFavorite
-                                      ? '${product.name} ditambahkan ke wishlist'
-                                      : '${product.name} dihapus dari wishlist',
-                                ),
-                                duration: const Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: Icon(
-                              isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              size: 18,
-                              color: isFavorite
-                                  ? AppTheme.dangerColor
-                                  : Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
+                      child: AnimatedPulseHeart(
+                        product: product,
+                        size: 18,
+                        onToggled: onFavoriteToggle,
                       ),
                     ),
 
@@ -211,36 +167,77 @@ class _ProductCardState extends State<ProductCard> {
                         ),
                       ),
 
-                      // Harga
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      // Harga & Tombol Keranjang Cepat
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(
-                            formatRupiah(product.price),
-                            style: const TextStyle(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  formatRupiah(product.price),
+                                  style: const TextStyle(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                if (product.originalPrice != null)
+                                  Text(
+                                    formatRupiah(product.originalPrice),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 11,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (product.originalPrice != null)
-                            Text(
-                              formatRupiah(product.originalPrice),
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 11,
-                                decoration: TextDecoration.lineThrough,
+
+                          // Tombol Tambah Keranjang Cepat
+                          InkWell(
+                            onTap: () {
+                              AppState.instance.addToCart(product);
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${product.name} dimasukkan ke keranjang!',
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.add_shopping_cart_rounded,
+                                size: 16,
+                                color: AppTheme.primaryColor,
                               ),
                             ),
+                          ),
                         ],
                       ),
 
-                      // Rating & Lokasi / Terjual
+                      // Rating & Terjual
                       Row(
                         children: [
                           const Icon(
                             Icons.star_rounded,
-                            size: 16,
+                            size: 15,
                             color: AppTheme.accentColor,
                           ),
                           const SizedBox(width: 2),
@@ -295,4 +292,3 @@ class _ProductCardState extends State<ProductCard> {
     );
   }
 }
-

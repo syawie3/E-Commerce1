@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/services/app_state.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/currency_formatter.dart';
 import '../core/utils/responsive.dart';
@@ -7,8 +8,9 @@ import '../data/dummy/dummy_produk.dart';
 import '../data/models/model_produk.dart';
 import '../widgets/safe_image.dart';
 import 'detail_product_screen.dart';
+import 'notifications_screen.dart';
 
-/// Halaman Feeds Sosial & Inspirasi Belanja
+/// Halaman Feeds Sosial & Inspirasi Belanja Interaktif
 class FeedsScreen extends StatefulWidget {
   const FeedsScreen({super.key});
 
@@ -22,7 +24,8 @@ class _FeedsScreenState extends State<FeedsScreen> {
   final List<Map<String, dynamic>> posts = [
     {
       'creator': 'GadgetReviewer ID',
-      'avatar': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+      'avatar':
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
       'time': '2 jam yang lalu',
       'caption':
           'Unboxing Wireless Noise Cancelling Headphone! Bass-nya nendang banget dan fitur ANC-nya benar-benar senyap. Cocok banget buat kerja di cafe atau fokus belajar. Rekomended banget guys! 🔥🎧',
@@ -33,7 +36,8 @@ class _FeedsScreenState extends State<FeedsScreen> {
     },
     {
       'creator': 'RunnerLife Indonesia',
-      'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+      'avatar':
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
       'time': '5 jam yang lalu',
       'caption':
           'Morning run 10K ditemani sepatu ultralight ini. Bantalannya super empuk dan gak bikin kaki cepat pegal. Buat kalian yang mau mulai rutinitas olahraga, ini pilihan terbaik! 🏃‍♂️⚡',
@@ -44,7 +48,8 @@ class _FeedsScreenState extends State<FeedsScreen> {
     },
     {
       'creator': 'SetupMinimalis Indo',
-      'avatar': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+      'avatar':
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
       'time': '1 hari yang lalu',
       'caption':
           'Setup produktivitas baru selesai dirakit. Mechanical Keyboard RGB ini feel mengetiknya satisfying banget dengan switch yang tactile dan suaranya renyah! ⌨️✨',
@@ -62,8 +67,20 @@ class _FeedsScreenState extends State<FeedsScreen> {
         title: const Text('Feeds & Inspirasi'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
+            icon: Badge(
+              label: Text('${AppState.instance.unreadNotificationCount}'),
+              isLabelVisible: AppState.instance.unreadNotificationCount > 0,
+              backgroundColor: AppTheme.dangerColor,
+              child: const Icon(Icons.notifications_none_rounded),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -122,7 +139,8 @@ class _FeedsScreenState extends State<FeedsScreen> {
                       : const LinearGradient(
                           colors: [Color(0xFFF43F5E), Color(0xFFF59E0B)],
                         ),
-                  border: isMine ? Border.all(color: Colors.grey.shade400) : null,
+                  border:
+                      isMine ? Border.all(color: Colors.grey.shade400) : null,
                 ),
                 child: Container(
                   decoration: const BoxDecoration(
@@ -141,7 +159,8 @@ class _FeedsScreenState extends State<FeedsScreen> {
               const SizedBox(height: 6),
               Text(
                 story['name'] as String,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                style:
+                    const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
               ),
             ],
           );
@@ -387,4 +406,3 @@ class _FeedsScreenState extends State<FeedsScreen> {
     );
   }
 }
-

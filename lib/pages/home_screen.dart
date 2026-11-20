@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/services/app_state.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/currency_formatter.dart';
 import '../core/utils/responsive.dart';
@@ -11,7 +12,7 @@ import '../widgets/my_app_bar.dart';
 import '../widgets/product_card.dart';
 import '../widgets/safe_image.dart';
 
-/// Halaman Beranda Utama E-Commerce
+/// Halaman Beranda Utama E-Commerce dengan Pencarian, Filter & Sorting Interaktif
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String selectedCategoryId = 'all';
   String searchQuery = '';
   int activeBannerIndex = 0;
+  String currentSort = 'default'; // default, price_low, price_high, rating
 
   final List<Map<String, dynamic>> banners = [
     {
@@ -48,145 +50,364 @@ class _HomeScreenState extends State<HomeScreen> {
     },
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Filter produk berdasarkan kategori dan pencarian
-    final filteredProducts = products.where((product) {
-      final matchesCategory = selectedCategoryId == 'all' ||
-          product.category.toLowerCase() == selectedCategoryId.toLowerCase();
-      final matchesSearch = searchQuery.isEmpty ||
-          product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          product.category.toLowerCase().contains(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    }).toList();
-
-    return Scaffold(
-      appBar: MyAppBar(
-        onSearchChanged: (query) {
-          setState(() {
-            searchQuery = query;
-          });
-        },
+  void _openFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      body: ResponsiveContentWrapper(
-        maxWidth: 1200,
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await Future.delayed(const Duration(milliseconds: 600));
-            setState(() {});
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Urutkan & Filter Produk',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  const Text(
+                    'Urutkan Berdasarkan:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildSortChip('default', 'Rekomendasi', setModalState),
+                      _buildSortChip(
+                        'price_low',
+                        'Harga Terendah',
+                        setModalState,
+                      ),
+                      _buildSortChip(
+                        'price_high',
+                        'Harga Tertinggi',
+                        setModalState,
+                      ),
+                      _buildSortChip('rating', 'Rating Tertinggi', setModalState),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Terapkan Pengurutan'),
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        );
+      },
+    );
+  }
+
+  Widget _buildSortChip(
+    String sortKey,
+    String label,
+    void Function(void Function()) setModalState,
+  ) {
+    final isSelected = currentSort == sortKey;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setModalState(() {
+            currentSort = sortKey;
+          });
+          setState(() {
+            currentSort = sortKey;
+          });
+        }
+      },
+      selectedColor: AppTheme.primaryColor.withOpacity(0.15),
+      labelStyle: TextStyle(
+        color: isSelected ? AppTheme.primaryColor : null,
+        fontWeight: isSelected ? FontWeight.bold : null,
+      ),
+    );
+  }
+
+  void _showTopUpSheet() {
+    int selectedAmount = 100000;
+    final amounts = [50000, 100000, 250000, 500000];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ==============================
-                // 1. DOMPET & QUICK ACTIONS
-                // ==============================
-                _buildWalletCard(isDark),
-
-                const SizedBox(height: 18),
-
-                // ==============================
-                // 2. PROMO BANNER CAROUSEL
-                // ==============================
-                _buildPromoBannerCarousel(),
-
-                const SizedBox(height: 24),
-
-                // ==============================
-                // 3. KATEGORI PILIHAN
-                // ==============================
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Kategori Pilihan',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      'Top Up Saldo Pay',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          selectedCategoryId = 'all';
-                          searchQuery = '';
-                        });
-                      },
-                      child: const Text('Reset Filter'),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                _buildCategoryList(),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: amounts.map((a) {
+                    final isSel = selectedAmount == a;
+                    return ChoiceChip(
+                      label: Text(formatRupiah(a)),
+                      selected: isSel,
+                      onSelected: (sel) {
+                        if (sel) setSheetState(() => selectedAmount = a);
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      AppState.instance.topUpWallet(selectedAmount);
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Top Up ${formatRupiah(selectedAmount)} berhasil!',
+                          ),
+                          backgroundColor: AppTheme.successColor,
+                        ),
+                      );
+                    },
+                    child: Text('Isi ${formatRupiah(selectedAmount)}'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-                const SizedBox(height: 24),
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                // ==============================
-                // 4. FLASH SALE SECTION
-                // ==============================
-                if (selectedCategoryId == 'all' && searchQuery.isEmpty) ...[
-                  _buildFlashSaleSection(),
-                  const SizedBox(height: 24),
-                ],
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        // Filter produk
+        List<Product> filteredProducts = products.where((product) {
+          final matchesCategory = selectedCategoryId == 'all' ||
+              product.category.toLowerCase() ==
+                  selectedCategoryId.toLowerCase();
+          final matchesSearch = searchQuery.isEmpty ||
+              product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              product.category.toLowerCase().contains(searchQuery.toLowerCase());
+          return matchesCategory && matchesSearch;
+        }).toList();
 
-                // ==============================
-                // 5. GRID PRODUK TERBARU
-                // ==============================
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Urutkan produk
+        if (currentSort == 'price_low') {
+          filteredProducts.sort((a, b) => a.price.compareTo(b.price));
+        } else if (currentSort == 'price_high') {
+          filteredProducts.sort((a, b) => b.price.compareTo(a.price));
+        } else if (currentSort == 'rating') {
+          filteredProducts.sort((a, b) => b.rating.compareTo(a.rating));
+        }
+
+        return Scaffold(
+          appBar: MyAppBar(
+            onSearchChanged: (query) {
+              setState(() {
+                searchQuery = query;
+              });
+            },
+            onFilterPressed: _openFilterModal,
+          ),
+          body: ResponsiveContentWrapper(
+            maxWidth: 1200,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await Future.delayed(const Duration(milliseconds: 600));
+                setState(() {});
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ==============================
+                    // 1. DOMPET & QUICK ACTIONS
+                    // ==============================
+                    _buildWalletCard(isDark),
+
+                    const SizedBox(height: 18),
+
+                    // ==============================
+                    // 2. PROMO BANNER CAROUSEL
+                    // ==============================
+                    _buildPromoBannerCarousel(),
+
+                    const SizedBox(height: 24),
+
+                    // ==============================
+                    // 3. KATEGORI PILIHAN
+                    // ==============================
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Rekomendasi Untuk Anda',
+                          'Kategori Pilihan',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${filteredProducts.length} item',
-                            style: const TextStyle(
-                              color: AppTheme.primaryColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedCategoryId = 'all';
+                              searchQuery = '';
+                              currentSort = 'default';
+                            });
+                          },
+                          child: const Text('Reset Filter'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildCategoryList(),
+
+                    const SizedBox(height: 24),
+
+                    // ==============================
+                    // 4. FLASH SALE SECTION
+                    // ==============================
+                    if (selectedCategoryId == 'all' && searchQuery.isEmpty) ...[
+                      _buildFlashSaleSection(),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // ==============================
+                    // 5. GRID PRODUK TERBARU
+                    // ==============================
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Rekomendasi Untuk Anda',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${filteredProducts.length} item',
+                                style: const TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: _openFilterModal,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.sort_rounded,
+                                  size: 18,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  currentSort == 'default'
+                                      ? 'Urutkan'
+                                      : 'Diurutkan',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+
+                    // List / Grid Produk
+                    if (filteredProducts.isEmpty)
+                      _buildEmptyState()
+                    else
+                      _buildProductGrid(filteredProducts),
+
+                    // Padding ekstra di bawah agar tidak tertutup floating navbar
+                    const SizedBox(height: 100),
                   ],
                 ),
-                const SizedBox(height: 14),
-
-                // List / Grid Produk
-                if (filteredProducts.isEmpty)
-                  _buildEmptyState()
-                else
-                  _buildProductGrid(filteredProducts),
-
-                // Padding ekstra di bawah agar tidak tertutup floating navbar
-                const SizedBox(height: 100),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -227,16 +448,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Saldo Pay',
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                     Text(
-                      'Rp 1.450.000',
-                      style: TextStyle(
+                      formatRupiah(AppState.instance.walletBalance),
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -272,16 +493,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Koin Bonus',
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                     Text(
-                      '25.400 Koin',
-                      style: TextStyle(
+                      '${AppState.instance.coinBalance} Koin',
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -294,14 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Tombol Topup
           FilledButton.tonal(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Membuka menu Top Up Saldo & Voucher...'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
+            onPressed: _showTopUpSheet,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               minimumSize: const Size(0, 36),
@@ -551,7 +765,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? Icon(
                               Icons.grid_view_rounded,
                               size: 28,
-                              color: isSelected ? Colors.white : AppTheme.primaryColor,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppTheme.primaryColor,
                             )
                           : SafeImage(
                               imageUrl: cat.image,
@@ -672,7 +888,6 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisCount: crossAxisCount,
         crossAxisSpacing: 12,
         mainAxisSpacing: 14,
-        // Rasio tinggi-lebar yang proporsional sehingga teks dan gambar tidak overflow
         childAspectRatio: crossAxisCount >= 4 ? 0.75 : 0.67,
       ),
       itemBuilder: (context, index) {
@@ -720,6 +935,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 searchQuery = '';
                 selectedCategoryId = 'all';
+                currentSort = 'default';
               });
             },
             icon: const Icon(Icons.refresh),

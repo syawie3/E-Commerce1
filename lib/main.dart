@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import 'core/services/app_state.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/responsive.dart';
+import 'data/models/model_transaksi.dart';
 import 'pages/feeds_screen.dart';
 import 'pages/home_screen.dart';
 import 'pages/login_screen.dart';
@@ -57,14 +59,12 @@ class _NavigationExampleState extends State<NavigationExample> {
   void _handleScroll(ScrollNotification notification) {
     if (notification is UserScrollNotification) {
       if (notification.direction == ScrollDirection.reverse) {
-        // Scroll ke bawah -> sembunyikan navbar agar pandangan lebih luas
         if (_showNavigationBar) {
           setState(() {
             _showNavigationBar = false;
           });
         }
       } else if (notification.direction == ScrollDirection.forward) {
-        // Scroll ke atas -> tampilkan kembali navbar
         if (!_showNavigationBar) {
           setState(() {
             _showNavigationBar = true;
@@ -124,76 +124,91 @@ class _NavigationExampleState extends State<NavigationExample> {
   Widget _buildFloatingNavBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark ? AppTheme.borderDark : AppTheme.borderLight,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        final activeOrdersCount = AppState.instance.orders
+            .where((o) =>
+                o.status == OrderStatus.dikemas ||
+                o.status == OrderStatus.dikirim)
+            .length;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isDark ? AppTheme.borderDark : AppTheme.borderLight,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: NavigationBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          height: 66,
-          selectedIndex: currentPageIndex,
-          indicatorColor: AppTheme.primaryColor.withOpacity(0.15),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (int index) {
-            setState(() {
-              currentPageIndex = index;
-            });
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primaryColor),
-              label: 'Beranda',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: NavigationBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              height: 66,
+              selectedIndex: currentPageIndex,
+              indicatorColor: AppTheme.primaryColor.withOpacity(0.15),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (int index) {
+                setState(() {
+                  currentPageIndex = index;
+                });
+              },
+              destinations: [
+                const NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon:
+                      Icon(Icons.home_rounded, color: AppTheme.primaryColor),
+                  label: 'Beranda',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.explore_outlined),
+                  selectedIcon:
+                      Icon(Icons.explore_rounded, color: AppTheme.primaryColor),
+                  label: 'Feeds',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.storefront_outlined),
+                  selectedIcon: Icon(Icons.storefront_rounded,
+                      color: AppTheme.primaryColor),
+                  label: 'Mall',
+                ),
+                NavigationDestination(
+                  icon: Badge(
+                    label: Text('$activeOrdersCount'),
+                    isLabelVisible: activeOrdersCount > 0,
+                    backgroundColor: AppTheme.primaryColor,
+                    child: const Icon(Icons.receipt_long_outlined),
+                  ),
+                  selectedIcon: Badge(
+                    label: Text('$activeOrdersCount'),
+                    isLabelVisible: activeOrdersCount > 0,
+                    backgroundColor: AppTheme.primaryColor,
+                    child: const Icon(Icons.receipt_long_rounded,
+                        color: AppTheme.primaryColor),
+                  ),
+                  label: 'Transaksi',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.person_outline_rounded),
+                  selectedIcon:
+                      Icon(Icons.person_rounded, color: AppTheme.primaryColor),
+                  label: 'Profil',
+                ),
+              ],
             ),
-            NavigationDestination(
-              icon: Icon(Icons.explore_outlined),
-              selectedIcon:
-                  Icon(Icons.explore_rounded, color: AppTheme.primaryColor),
-              label: 'Feeds',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon:
-                  Icon(Icons.storefront_rounded, color: AppTheme.primaryColor),
-              label: 'Mall',
-            ),
-            NavigationDestination(
-              icon: Badge(
-                label: Text('2'),
-                backgroundColor: AppTheme.primaryColor,
-                child: Icon(Icons.receipt_long_outlined),
-              ),
-              selectedIcon: Badge(
-                label: Text('2'),
-                backgroundColor: AppTheme.primaryColor,
-                child: Icon(Icons.receipt_long_rounded, color: AppTheme.primaryColor),
-              ),
-              label: 'Transaksi',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon:
-                  Icon(Icons.person_rounded, color: AppTheme.primaryColor),
-              label: 'Profil',
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/utils/responsive.dart';
+import '../widgets/custom_back_button.dart';
 
 /// Halaman Pendaftaran Akun Baru
 class RegisterScreen extends StatefulWidget {
@@ -67,6 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const CustomBackButton(),
         title: const Text('Daftar Akun Baru'),
       ),
       body: SafeArea(
